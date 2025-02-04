@@ -24,6 +24,19 @@ cd fetchit
 make
 ```
 
+## Installation from source
+
+```bash
+# Clone the repository
+git clone https://github.com/NotKeira/fetchit.git
+
+# Navigate to the directory
+cd fetchit
+
+# Install
+make install
+```
+
 ## Usage
 
 ```bash

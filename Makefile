@@ -8,3 +8,7 @@ all:
 
 clean:
 	rm -f $(OUT)
+
+install: all
+	@echo "Installing FetchIt..."
+	@./install/$(shell uname | tr '[:upper:]' '[:lower:]').sh
