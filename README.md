@@ -30,6 +30,8 @@ make
 ./fetchit
 ```
 
+![example](assets/demo.png)
+
 ## Features
 
 - System information display
