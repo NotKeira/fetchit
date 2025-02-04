@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Install FetchIt for MacOS
+
+cd ../
+
+make
+
+sudo cp fetchit /usr/local/bin/
+
+if command -v fetchit &> /dev/null
+then
+    cd install
+    echo "fetchit installed successfully"
+
+else
+    echo "fetchit installation failed"
+fi
