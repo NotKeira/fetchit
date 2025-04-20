@@ -2,8 +2,8 @@
 
 A command-line system information fetching tool.
 
-
 ## Supported Operating Systems
+
 - Linux (Debian, Ubuntu, Fedora, etc.)
 - macOS (10.15+)
 - FreeBSD
@@ -16,10 +16,12 @@ Fetchit is a lightweight system information tool written in C that displays syst
 ## Installation
 
 ### Prerequisites
+
 - GCC compiler
 - Make
 
 ### Building from source
+
 ```bash
 # Clone the repository
 git clone https://github.com/NotKeira/fetchit.git
@@ -41,7 +43,7 @@ git clone https://github.com/NotKeira/fetchit.git
 cd fetchit
 
 # Install
-make install
+sudo make install
 ```
 
 ## Usage
@@ -69,4 +71,4 @@ fetchit # Anywhere
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

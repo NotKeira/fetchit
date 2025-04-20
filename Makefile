@@ -14,4 +14,7 @@ clean:
 
 install: all
 	@echo "Installing FetchIt..."
-	@./install/$(shell uname | tr '[:upper:]' '[:lower:]').sh
+	@cp $(OUT) /usr/local/bin/fetchit
+	@chmod +x /usr/local/bin/fetchit
+	@clear
+	@echo "FetchIt installed to /usr/local/bin. You can now run 'fetchit' from anywhere."

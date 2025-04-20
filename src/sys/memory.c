@@ -4,26 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-// static void parse_meminfo(char *line, const char *key, unsigned long long *value) {
-//     char *match;
-//     if ((match = strstr(line, key)) != NULL) {
-//         *value = strtoull(match + strlen(key), NULL, 10);
-//     }
-// }
-
-// static int read_memory_stats(unsigned long long *total, unsigned long long *free_mem, unsigned long long *avail) {
-//     FILE *fp = fopen("/proc/meminfo", "r");
-//     if (!fp) return 0;
-
-//     char line[256];
-//     while (fgets(line, sizeof(line), fp)) {
-//         parse_meminfo(line, "MemTotal:", total);
-//         parse_meminfo(line, "MemFree:", free_mem);
-//         parse_meminfo(line, "MemAvailable:", avail);
-//     }
-//     fclose(fp);
-//     return 1;
-// }
 void memory_info()
 {
     char *output;
