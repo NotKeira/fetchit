@@ -5,7 +5,6 @@
 #include "utils.h"
 #include "colour.h"
 
-
 void print_title(const char *title)
 {
     char *coloured_title = colour_string(CYAN, title);

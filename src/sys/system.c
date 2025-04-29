@@ -1,97 +1,70 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 #include <sys/utsname.h>
-#include <stdbool.h>
+#include <dirent.h>
 #include "system.h"
+#include "types.h"
 #include "utils.h"
-#include "colour.h"
 
-static bool is_command_available(const char *command)
+void collect_system_info(void)
 {
-    char check_command[256];
-    snprintf(check_command, sizeof(check_command), "command -v %s > /dev/null 2>&1", command);
-    return system(check_command) == 0;
-}
-
-void system_info()
-{
-    retrieve_system_info();
-    retrieve_kernel_info();
-    retrieve_package_info();
-}
-
-void retrieve_system_info()
-{
-    struct utsname buffer;
-    if (uname(&buffer) != 0)
-    {
-        perror("uname");
+    struct utsname uts;
+    if (uname(&uts) < 0)
         return;
+
+    strncpy(g_system_info.system.hostname, uts.nodename, sizeof(g_system_info.system.hostname) - 1);
+    strncpy(g_system_info.system.kernel, uts.release, sizeof(g_system_info.system.kernel) - 1);
+    strncpy(g_system_info.system.arch, uts.machine, sizeof(g_system_info.system.arch) - 1);
+
+    // Read OS info from /etc/os-release
+    FILE *fp = fopen("/etc/os-release", "r");
+    if (fp)
+    {
+        char line[256];
+        while (fgets(line, sizeof(line), fp))
+        {
+            if (strncmp(line, "PRETTY_NAME=", 12) == 0)
+            {
+                char *name = strchr(line, '\"');
+                if (name)
+                {
+                    name++;
+                    char *end = strchr(name, '\"');
+                    if (end)
+                        *end = '\0';
+                    strncpy(g_system_info.system.os, name, sizeof(g_system_info.system.os) - 1);
+                }
+                break;
+            }
+        }
+        fclose(fp);
     }
 
-    char *os_info = get_command_output("cat /etc/os-release | grep PRETTY_NAME | cut -d '\"' -f2");
-    if (os_info)
+    // Count packages in /var/lib/dpkg/info (Debian-based)
+    DIR *d = opendir("/var/lib/dpkg/info");
+    if (d)
     {
-        format_row("OS", os_info);
-        free(os_info);
+        struct dirent *dir;
+        while ((dir = readdir(d)) != NULL)
+        {
+            if (strstr(dir->d_name, ".list"))
+            {
+                g_system_info.system.package_count++;
+            }
+        }
+        closedir(d);
     }
-    else
-    {
-        format_row("OS", "Unknown");
-    }
-
-    format_row("Assembly", buffer.machine);
-    format_row("Hostname", buffer.nodename);
 }
 
-void retrieve_kernel_info()
+void system_info(void)
 {
-    struct utsname buffer;
-    if (uname(&buffer) != 0)
-    {
-        perror("uname");
-        return;
-    }
+    format_row("Hostname", g_system_info.system.hostname);
+    format_row("OS", g_system_info.system.os);
+    format_row("Kernel", g_system_info.system.kernel);
+    format_row("Architecture", g_system_info.system.arch);
 
-    char kernel_info[256];
-    snprintf(kernel_info, sizeof(kernel_info), "%s %s", buffer.sysname, buffer.release);
-    format_row("Kernel", kernel_info);
-    format_row("Version", buffer.version);
-}
-
-void retrieve_package_info()
-{
-    if (is_command_available("dnf"))
-    {
-        char *output = get_command_output("dnf list installed | wc -l");
-        if (output)
-        {
-            format_row("Packages (DNF)", output);
-            free(output);
-            return;
-        }
-    }
-    else if (is_command_available("dpkg"))
-    {
-        char *output = get_command_output("dpkg -l | wc -l");
-        if (output)
-        {
-            format_row("Packages (APT)", output);
-            free(output);
-            return;
-        }
-    }
-    else if (is_command_available("snap"))
-    {
-        char *output = get_command_output("snap list | wc -l");
-        if (output)
-        {
-            format_row("Packages (Snap)", output);
-            free(output);
-            return;
-        }
-    }
-
-    format_row("Packages", "Not Available");
+    char pkg_count[32];
+    snprintf(pkg_count, sizeof(pkg_count), "%d", g_system_info.system.package_count);
+    format_row("Packages", pkg_count);
 }

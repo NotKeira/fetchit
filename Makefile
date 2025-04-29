@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Iinclude -Wall -Wextra -g
+CFLAGS = -Iinclude -Wall -Wextra -g -pthread
 SRC = $(wildcard src/sys/*.c) src/main.c
 OUT = fetchit
 
