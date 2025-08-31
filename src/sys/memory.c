@@ -5,37 +5,36 @@
 #include <stdlib.h>
 #include <string.h>
 
-static unsigned long get_meminfo_value(const char *field)
+void collect_memory_info(void)
 {
     FILE *fp = fopen("/proc/meminfo", "r");
     if (!fp)
-        return 0;
+        return;
 
     char line[256];
-    unsigned long value = 0;
+    unsigned long total = 0, available = 0;
+    int found = 0;
 
-    while (fgets(line, sizeof(line), fp))
+    // Read both values in one pass
+    while (fgets(line, sizeof(line), fp) && found < 2)
     {
-        if (strstr(line, field))
+        if (strncmp(line, "MemTotal:", 9) == 0)
         {
-            sscanf(line, "%*s %lu", &value);
-            break;
+            sscanf(line, "MemTotal: %lu", &total);
+            found++;
+        }
+        else if (strncmp(line, "MemAvailable:", 13) == 0)
+        {
+            sscanf(line, "MemAvailable: %lu", &available);
+            found++;
         }
     }
     fclose(fp);
-    return value;
-}
-
-void collect_memory_info(void)
-{
-    unsigned long total = get_meminfo_value("MemTotal:");
-    unsigned long available = get_meminfo_value("MemAvailable:");
 
     if (total > 0)
     {
-        unsigned long used = total - available;
         g_system_info.memory.total_kb = total;
-        g_system_info.memory.used_kb = used;
+        g_system_info.memory.used_kb = total - available;
         g_system_info.memory.free_kb = available;
     }
 }
