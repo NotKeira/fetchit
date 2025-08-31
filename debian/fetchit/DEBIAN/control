@@ -1,0 +1,13 @@
+Package: fetchit
+Version: 1.2.0-1
+Architecture: amd64
+Maintainer: Keira Hopkins <open-source@keirahopkins.co.uk>
+Installed-Size: 32
+Depends: libc6 (>= 2.34)
+Section: utils
+Priority: optional
+Homepage: https://github.com/NotKeira/fetchit
+Description: System information display tool
+ A fast and lightweight command-line system information tool written in C.
+ Displays essential system details including hardware specifications,
+ operating system information, and performance metrics.

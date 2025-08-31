@@ -1,0 +1,27 @@
+fetchit (1.2.0-1) unstable; urgency=medium
+
+  * Major system overhaul for improved performance
+  * Reduced memory usage and code complexity
+  * Enhanced memory safety throughout codebase
+  * General system improvements and optimisations
+
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Tue, 29 Apr 2025 12:00:00 +0100
+
+fetchit (1.1.0-1) unstable; urgency=low
+
+  * Fixed package-related bugs across all components
+
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Sun, 20 Apr 2025 12:00:00 +0100
+
+fetchit (1.0.1-1) unstable; urgency=medium
+
+  * Fixed permission denied errors
+  * Updated system information retrieval methods
+
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Sun, 09 Feb 2025 12:00:00 +0000
+
+fetchit (1.0.0-1) unstable; urgency=medium
+
+  * Initial release
+
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Sun, 09 Feb 2025 10:00:00 +0000

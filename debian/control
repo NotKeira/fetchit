@@ -1,0 +1,17 @@
+Source: fetchit
+Section: utils
+Priority: optional
+Maintainer: Keira Hopkins <open-source@keirahopkins.co.uk>
+Build-Depends: build-essential, libc6-dev
+Standards-Version: 4.6.2
+Homepage: https://github.com/NotKeira/fetchit
+Vcs-Git: https://github.com/NotKeira/fetchit.git
+Vcs-Browser: https://github.com/NotKeira/fetchit
+
+Package: fetchit
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: System information display tool
+ A fast and lightweight command-line system information tool written in C.
+ Displays essential system details including hardware specifications,
+ operating system information, and performance metrics.
