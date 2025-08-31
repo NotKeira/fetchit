@@ -1,0 +1,26 @@
+#!/bin/bash
+set -e
+
+echo "Testing basic fetchit execution..."
+
+# Test that fetchit runs without error
+fetchit > /tmp/fetchit_output 2>&1
+
+# Check that output contains expected fields
+grep -q "Hostname" /tmp/fetchit_output
+grep -q "OS" /tmp/fetchit_output  
+grep -q "Kernel" /tmp/fetchit_output
+grep -q "CPU" /tmp/fetchit_output
+grep -q "Memory" /tmp/fetchit_output
+grep -q "Storage" /tmp/fetchit_output
+
+# Check exit code is 0
+fetchit >/dev/null
+if [ $? -eq 0 ]; then
+    echo "✓ fetchit executes successfully"
+else
+    echo "✗ fetchit failed to execute"
+    exit 1
+fi
+
+echo "✓ All basic functionality tests passed"

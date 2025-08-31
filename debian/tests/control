@@ -1,0 +1,7 @@
+Tests: basic-functionality
+Depends: fetchit
+Restrictions: allow-stderr
+
+Tests: performance-check  
+Depends: fetchit, time
+Restrictions: allow-stderr

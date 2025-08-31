@@ -1,41 +1,41 @@
-fetchit (1.3.0-1) unstable; urgency=medium
+fetchit (1.3.0) unstable; urgency=medium
 
-- Major performance improvements reducing execution time by ~90%
-- Removed threading overhead that was causing futex bottlenecks
-- Optimised file I/O operations and reduced syscall count
-- Enhanced CPU frequency detection with reliable fallback methods
-- Eliminated duplicate memory info file reads
-- Improved GPU detection with pattern matching instead of directory scanning
-- Optimised package counting to avoid expensive directory traversal
-- Added multi-filesystem storage display showing all important mount points
-- Build system optimisations with aggressive compiler flags
+  * Major performance improvements reducing execution time by ~90%
+  * Removed threading overhead that was causing futex bottlenecks
+  * Optimised file I/O operations and reduced syscall count
+  * Enhanced CPU frequency detection with reliable fallback methods
+  * Eliminated duplicate memory info file reads
+  * Improved GPU detection with pattern matching instead of directory scanning
+  * Optimised package counting to avoid expensive directory traversal
+  * Added multi-filesystem storage display showing all important mount points
+  * Build system optimisations with aggressive compiler flags
 
--- Keira Hopkins <open-source@keirahopkins.co.uk> Mon, 02 Sep 2024 14:00:00 +0100
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Sun, 31 Aug 2025 22:54:00 +0100
 
-fetchit (1.2.0-1) unstable; urgency=medium
+fetchit (1.2.0) unstable; urgency=medium
 
-- Major system overhaul for improved performance
-- Reduced memory usage and code complexity
-- Enhanced memory safety throughout codebase
-- General system improvements and optimisations
+  * Major system overhaul for improved performance
+  * Reduced memory usage and code complexity
+  * Enhanced memory safety throughout codebase
+  * General system improvements and optimisations
 
--- Keira Hopkins <open-source@keirahopkins.co.uk> Tue, 29 Apr 2025 12:00:00 +0100
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Tue, 29 Apr 2025 12:00:00 +0100
 
-fetchit (1.1.0-1) unstable; urgency=low
+fetchit (1.1.0) unstable; urgency=low
 
-- Fixed package-related bugs across all components
+  * Fixed package-related bugs across all components
 
--- Keira Hopkins <open-source@keirahopkins.co.uk> Sun, 20 Apr 2025 12:00:00 +0100
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Sun, 20 Apr 2025 12:00:00 +0100
 
-fetchit (1.0.1-1) unstable; urgency=medium
+fetchit (1.0.1) unstable; urgency=medium
 
-- Fixed permission denied errors
-- Updated system information retrieval methods
+  * Fixed permission denied errors
+  * Updated system information retrieval methods
 
--- Keira Hopkins <open-source@keirahopkins.co.uk> Sun, 09 Feb 2025 12:00:00 +0000
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Sun, 09 Feb 2025 12:00:00 +0000
 
-fetchit (1.0.0-1) unstable; urgency=medium
+fetchit (1.0.0) unstable; urgency=medium
 
-- Initial release
+  * Initial release
 
--- Keira Hopkins <open-source@keirahopkins.co.uk> Sun, 09 Feb 2025 10:00:00 +0000
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Sun, 09 Feb 2025 10:00:00 +0000

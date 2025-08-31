@@ -2,7 +2,7 @@ Source: fetchit
 Section: utils
 Priority: optional
 Maintainer: Keira Hopkins <open-source@keirahopkins.co.uk>
-Build-Depends: build-essential, libc6-dev
+Build-Depends: debhelper (>= 11)
 Standards-Version: 4.6.2
 Homepage: https://github.com/NotKeira/fetchit
 Vcs-Git: https://github.com/NotKeira/fetchit.git

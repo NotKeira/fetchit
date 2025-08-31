@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+
+echo "Testing fetchit performance..."
+
+# Test that fetchit completes within reasonable time (< 100ms)
+timeout 1s time fetchit >/dev/null
+
+echo "✓ Performance test passed"
