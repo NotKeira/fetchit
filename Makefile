@@ -1,20 +1,29 @@
 CC = gcc
-CFLAGS = -Iinclude -Wall -Wextra -g -pthread
+CFLAGS = -Iinclude -Wall -Wextra -O3 -march=native -flto -DNDEBUG
 SRC = $(wildcard src/sys/*.c) src/main.c
 OUT = fetchit
 
-all: set_permissions
-	$(CC) $(CFLAGS) $(SRC) -o $(OUT)
+# Auto-detect install location based on permissions
+ifeq ($(shell id -u), 0)
+    PREFIX = /usr
+else
+    PREFIX = /usr/local
+endif
 
-set_permissions:
-	chmod -R u+rwx src/sys
+DESTDIR =
+
+all: $(OUT)
+
+$(OUT): $(SRC)
+	$(CC) $(CFLAGS) $(SRC) -o $(OUT)
+	strip $(OUT)
 
 clean:
 	rm -f $(OUT)
 
-install: all
-	@echo "Installing FetchIt..."
-	@cp $(OUT) /usr/local/bin/fetchit
-	@chmod +x /usr/local/bin/fetchit
-	@clear
-	@echo "FetchIt installed to /usr/local/bin. You can now run 'fetchit' from anywhere."
+install: $(OUT)
+	@echo "Installing to $(PREFIX)/bin"
+	install -d $(DESTDIR)$(PREFIX)/bin
+	install -m 755 $(OUT) $(DESTDIR)$(PREFIX)/bin/
+
+.PHONY: all clean install
