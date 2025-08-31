@@ -3,51 +3,79 @@
 #include "utils.h"
 #include <stdio.h>
 #include <string.h>
-#include <dirent.h>
-#include <fcntl.h>
+#include <glob.h>
 #include <unistd.h>
 
 void collect_gpu_info(void)
 {
-    // Try reading from /sys/class/drm first
-    DIR *dir = opendir("/sys/class/drm");
-    if (dir)
-    {
-        struct dirent *entry;
-        while ((entry = readdir(dir)))
-        {
-            if (strstr(entry->d_name, "card"))
-            {
-                char path[512];
-                snprintf(path, sizeof(path), "/sys/class/drm/%s/device/uevent", entry->d_name);
+    // Use glob instead of directory scanning - much faster
+    glob_t glob_result;
 
-                FILE *fp = fopen(path, "r");
+    // Find GPU cards directly with pattern matching
+    if (glob("/sys/class/drm/card*/device/uevent", GLOB_NOSORT, NULL, &glob_result) == 0)
+    {
+
+        // Process first GPU only (early exit)
+        if (glob_result.gl_pathc > 0)
+        {
+            FILE *fp = fopen(glob_result.gl_pathv[0], "r");
+            if (fp)
+            {
+                char line[256];
+                while (fgets(line, sizeof(line), fp))
+                {
+                    if (strncmp(line, "DRIVER=", 7) == 0)
+                    {
+                        char *driver = line + 7;
+                        size_t len = strlen(driver);
+                        if (len > 0 && driver[len - 1] == '\n')
+                            driver[len - 1] = '\0';
+                        snprintf(g_system_info.gpu.model, sizeof(g_system_info.gpu.model),
+                                 "GPU Driver: %s", driver);
+                        break;
+                    }
+                }
+                fclose(fp);
+            }
+        }
+        globfree(&glob_result);
+    }
+
+    // Fallback: try common GPU info files directly
+    if (g_system_info.gpu.model[0] == '\0')
+    {
+        // Try reading GPU info from direct paths
+        const char *gpu_paths[] = {
+            "/sys/class/drm/card0/device/uevent",
+            "/sys/class/drm/card1/device/uevent",
+            NULL};
+
+        for (int i = 0; gpu_paths[i] != NULL; i++)
+        {
+            if (access(gpu_paths[i], R_OK) == 0)
+            {
+                FILE *fp = fopen(gpu_paths[i], "r");
                 if (fp)
                 {
                     char line[256];
                     while (fgets(line, sizeof(line), fp))
                     {
-                        if (strstr(line, "DRIVER="))
+                        if (strncmp(line, "DRIVER=", 7) == 0)
                         {
-                            char *driver = strchr(line, '=');
-                            if (driver)
-                            {
-                                driver++;
-                                size_t len = strlen(driver);
-                                if (len > 0 && driver[len - 1] == '\n')
-                                    driver[len - 1] = '\0';
-                                snprintf(g_system_info.gpu.model, sizeof(g_system_info.gpu.model),
-                                         "GPU Driver: %s", driver);
-                            }
-                            break;
+                            char *driver = line + 7;
+                            size_t len = strlen(driver);
+                            if (len > 0 && driver[len - 1] == '\n')
+                                driver[len - 1] = '\0';
+                            snprintf(g_system_info.gpu.model, sizeof(g_system_info.gpu.model),
+                                     "GPU Driver: %s", driver);
+                            fclose(fp);
+                            return;
                         }
                     }
                     fclose(fp);
-                    break;
                 }
             }
         }
-        closedir(dir);
     }
 }
 
