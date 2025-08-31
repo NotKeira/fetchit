@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include "utils.h"
 #include "colour.h"
 
@@ -14,6 +13,7 @@ void print_title(const char *title)
         free(coloured_title);
     }
 }
+
 char *colour_string(const char *colour, const char *text)
 {
     size_t length = strlen(colour) + strlen(text) + strlen(RESET) + 1;
@@ -21,7 +21,6 @@ char *colour_string(const char *colour, const char *text)
 
     if (output == NULL)
     {
-        perror("malloc");
         return NULL;
     }
 
@@ -47,27 +46,6 @@ void format_row(const char *key, const char *value)
     format_string(key, value, CYAN);
 }
 
-void trim_leading_spaces(char *str)
-{
-    while (isspace((unsigned char)*str))
-    {
-        str++;
-    }
-}
-
-char *get_command_output(const char *command)
-{
-    FILE *fp;
-    char *result = malloc(256);
-    fp = popen(command, "r");
-    if (fp == NULL)
-    {
-        perror("popen");
-        free(result);
-        return NULL;
-    }
-    fgets(result, 256, fp);
-    pclose(fp);
-    result[strcspn(result, "\n")] = '\0';
-    return result;
-}
+// Removed unused functions:
+// - trim_leading_spaces (not used anywhere)
+// - get_command_output (not used, and uses popen which is slow)
