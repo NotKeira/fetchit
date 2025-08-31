@@ -2,10 +2,49 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/utsname.h>
-#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include "system.h"
 #include "types.h"
 #include "utils.h"
+
+static int count_packages_fast(void)
+{
+    // Read /var/lib/dpkg/status (single file, faster than directory scan)
+    FILE *fp = fopen("/var/lib/dpkg/status", "r");
+    if (!fp)
+        return 0;
+
+    char line[256];
+    int count = 0;
+    int in_package = 0;
+    int is_installed = 0;
+
+    while (fgets(line, sizeof(line), fp))
+    {
+        if (strncmp(line, "Package:", 8) == 0)
+        {
+            in_package = 1;
+            is_installed = 0;
+        }
+        else if (in_package && strncmp(line, "Status:", 7) == 0)
+        {
+            if (strstr(line, "install ok installed"))
+            {
+                is_installed = 1;
+            }
+        }
+        else if (in_package && line[0] == '\n')
+        {
+            // End of package block
+            if (is_installed)
+                count++;
+            in_package = 0;
+        }
+    }
+    fclose(fp);
+    return count;
+}
 
 void collect_system_info(void)
 {
@@ -41,30 +80,6 @@ void collect_system_info(void)
         fclose(fp);
     }
 
-    // Count packages in /var/lib/dpkg/info (Debian-based)
-    DIR *d = opendir("/var/lib/dpkg/info");
-    if (d)
-    {
-        struct dirent *dir;
-        while ((dir = readdir(d)) != NULL)
-        {
-            if (strstr(dir->d_name, ".list"))
-            {
-                g_system_info.system.package_count++;
-            }
-        }
-        closedir(d);
-    }
-}
-
-void system_info(void)
-{
-    format_row("Hostname", g_system_info.system.hostname);
-    format_row("OS", g_system_info.system.os);
-    format_row("Kernel", g_system_info.system.kernel);
-    format_row("Architecture", g_system_info.system.arch);
-
-    char pkg_count[32];
-    snprintf(pkg_count, sizeof(pkg_count), "%d", g_system_info.system.package_count);
-    format_row("Packages", pkg_count);
+    // Use optimised package counting
+    g_system_info.system.package_count = count_packages_fast();
 }
