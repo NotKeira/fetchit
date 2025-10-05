@@ -1,3 +1,11 @@
+/**
+ * memory.c - Memory Information Collection
+ *
+ * Retrieves system memory statistics from /proc/meminfo, including
+ * total, available, and used memory values. Calculates usage
+ * percentages for display.
+ */
+
 #include "memory.h"
 #include "types.h"
 #include "utils.h"
@@ -5,6 +13,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * collect_memory_info - Gather memory statistics
+ *
+ * Parses /proc/meminfo to extract total and available memory values.
+ * Uses single-pass reading for efficiency, stopping after both values
+ * are found. Calculates used memory from the difference between total
+ * and available.
+ *
+ * Memory values are stored in kilobytes within the global system_info
+ * structure.
+ */
 void collect_memory_info(void)
 {
     FILE *fp = fopen("/proc/meminfo", "r");
@@ -15,7 +34,7 @@ void collect_memory_info(void)
     unsigned long total = 0, available = 0;
     int found = 0;
 
-    // Read both values in one pass
+    /* Single-pass reading: stop after finding both values */
     while (fgets(line, sizeof(line), fp) && found < 2)
     {
         if (strncmp(line, "MemTotal:", 9) == 0)
@@ -39,6 +58,12 @@ void collect_memory_info(void)
     }
 }
 
+/**
+ * memory_info - Display formatted memory information
+ *
+ * Converts memory values from kilobytes to gibibytes and displays
+ * total, used, and percentage utilisation in a human-readable format.
+ */
 void memory_info(void)
 {
     float total_gb = g_system_info.memory.total_kb / (1024.0 * 1024.0);

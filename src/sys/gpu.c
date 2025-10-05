@@ -1,3 +1,11 @@
+/**
+ * gpu.c - GPU Information Collection
+ *
+ * Retrieves graphics card information from sysfs DRM subsystem.
+ * Uses pattern matching for efficient device discovery and extracts
+ * driver information from uevent files.
+ */
+
 #include "gpu.h"
 #include "types.h"
 #include "utils.h"
@@ -6,16 +14,25 @@
 #include <glob.h>
 #include <unistd.h>
 
+/**
+ * collect_gpu_info - Gather GPU information
+ *
+ * Attempts to identify the GPU driver by reading DRM card device
+ * information from sysfs. Uses glob for efficient pattern-based
+ * device discovery, falling back to direct path access if needed.
+ * Only processes the first detected GPU card.
+ *
+ * The function populates g_system_info.gpu.model with the driver
+ * name if found, otherwise leaves it empty.
+ */
 void collect_gpu_info(void)
 {
-    // Use glob instead of directory scanning - much faster
     glob_t glob_result;
 
-    // Find GPU cards directly with pattern matching
+    /* Primary method: use glob pattern matching for fast discovery */
     if (glob("/sys/class/drm/card*/device/uevent", GLOB_NOSORT, NULL, &glob_result) == 0)
     {
-
-        // Process first GPU only (early exit)
+        /* Process first GPU only for performance */
         if (glob_result.gl_pathc > 0)
         {
             FILE *fp = fopen(glob_result.gl_pathv[0], "r");
@@ -27,9 +44,12 @@ void collect_gpu_info(void)
                     if (strncmp(line, "DRIVER=", 7) == 0)
                     {
                         char *driver = line + 7;
+
+                        /* Remove trailing newline */
                         size_t len = strlen(driver);
                         if (len > 0 && driver[len - 1] == '\n')
                             driver[len - 1] = '\0';
+
                         snprintf(g_system_info.gpu.model, sizeof(g_system_info.gpu.model),
                                  "GPU Driver: %s", driver);
                         break;
@@ -41,10 +61,9 @@ void collect_gpu_info(void)
         globfree(&glob_result);
     }
 
-    // Fallback: try common GPU info files directly
+    /* Fallback: attempt direct path access to common card devices */
     if (g_system_info.gpu.model[0] == '\0')
     {
-        // Try reading GPU info from direct paths
         const char *gpu_paths[] = {
             "/sys/class/drm/card0/device/uevent",
             "/sys/class/drm/card1/device/uevent",
@@ -63,9 +82,12 @@ void collect_gpu_info(void)
                         if (strncmp(line, "DRIVER=", 7) == 0)
                         {
                             char *driver = line + 7;
+
+                            /* Remove trailing newline */
                             size_t len = strlen(driver);
                             if (len > 0 && driver[len - 1] == '\n')
                                 driver[len - 1] = '\0';
+
                             snprintf(g_system_info.gpu.model, sizeof(g_system_info.gpu.model),
                                      "GPU Driver: %s", driver);
                             fclose(fp);
@@ -79,6 +101,12 @@ void collect_gpu_info(void)
     }
 }
 
+/**
+ * gpu_info - Display formatted GPU information
+ *
+ * Prints GPU driver information if available. Omits output
+ * if no GPU information was collected.
+ */
 void gpu_info(void)
 {
     if (g_system_info.gpu.model[0] != '\0')

@@ -1,3 +1,11 @@
+/**
+ * system.c - System Information Collection
+ *
+ * Retrieves basic system information including hostname, kernel version,
+ * architecture, operating system, and installed package count. Uses
+ * optimised methods for efficient data collection.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,9 +16,18 @@
 #include "types.h"
 #include "utils.h"
 
+/**
+ * count_packages_fast - Count installed Debian packages
+ *
+ * Parses /var/lib/dpkg/status to count installed packages. Uses
+ * single-file parsing instead of directory scanning for improved
+ * performance. Only counts packages with "install ok installed"
+ * status.
+ *
+ * Return: Number of installed packages, or 0 on error
+ */
 static int count_packages_fast(void)
 {
-    // Read /var/lib/dpkg/status (single file, faster than directory scan)
     FILE *fp = fopen("/var/lib/dpkg/status", "r");
     if (!fp)
         return 0;
@@ -36,16 +53,25 @@ static int count_packages_fast(void)
         }
         else if (in_package && line[0] == '\n')
         {
-            // End of package block
+            /* End of package block */
             if (is_installed)
                 count++;
             in_package = 0;
         }
     }
+
     fclose(fp);
     return count;
 }
 
+/**
+ * collect_system_info - Gather basic system information
+ *
+ * Retrieves hostname, kernel version, and architecture via uname().
+ * Reads operating system name from /etc/os-release and counts
+ * installed packages using count_packages_fast(). Populates the
+ * global system_info structure with collected data.
+ */
 void collect_system_info(void)
 {
     struct utsname uts;
@@ -56,7 +82,7 @@ void collect_system_info(void)
     strncpy(g_system_info.system.kernel, uts.release, sizeof(g_system_info.system.kernel) - 1);
     strncpy(g_system_info.system.arch, uts.machine, sizeof(g_system_info.system.arch) - 1);
 
-    // Read OS info from /etc/os-release
+    /* Read OS distribution name from /etc/os-release */
     FILE *fp = fopen("/etc/os-release", "r");
     if (fp)
     {
@@ -80,6 +106,6 @@ void collect_system_info(void)
         fclose(fp);
     }
 
-    // Use optimised package counting
+    /* Count installed packages using optimised method */
     g_system_info.system.package_count = count_packages_fast();
 }

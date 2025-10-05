@@ -1,3 +1,11 @@
+/**
+ * storage.c - Storage Information Collection
+ *
+ * Retrieves filesystem information from mounted volumes, filtering
+ * for relevant physical and user filesystems. Excludes virtual and
+ * system filesystems to present only meaningful storage data.
+ */
+
 #include "storage.h"
 #include "types.h"
 #include "utils.h"
@@ -20,17 +28,27 @@ typedef struct
 static filesystem_info_t filesystems[MAX_FILESYSTEMS];
 static int filesystem_count = 0;
 
+/**
+ * is_important_filesystem - Determine if filesystem should be displayed
+ * @mount_point: Mount path of the filesystem
+ * @fstype: Filesystem type string
+ *
+ * Filters filesystems to include only physical storage and user-mounted
+ * volumes. Excludes virtual/pseudo filesystems and system directories.
+ *
+ * Return: 1 if filesystem is relevant, 0 otherwise
+ */
 static int is_important_filesystem(const char *mount_point, const char *fstype)
 {
-    // Always include root
+    /* Always include root filesystem */
     if (strcmp(mount_point, "/") == 0)
         return 1;
 
-    // Include /home if it's a separate mount
+    /* Include /home if mounted separately */
     if (strcmp(mount_point, "/home") == 0)
         return 1;
 
-    // Skip virtual filesystems
+    /* Exclude virtual/pseudo filesystems */
     if (strncmp(fstype, "proc", 4) == 0 ||
         strncmp(fstype, "sys", 3) == 0 ||
         strncmp(fstype, "dev", 3) == 0 ||
@@ -49,7 +67,7 @@ static int is_important_filesystem(const char *mount_point, const char *fstype)
         return 0;
     }
 
-    // Include user-mounted filesystems (typically start with /media, /mnt, or /home)
+    /* Include user-mounted filesystems under /media, /mnt, or /home subdirectories */
     if (strncmp(mount_point, "/media/", 7) == 0 ||
         strncmp(mount_point, "/mnt/", 5) == 0 ||
         (strncmp(mount_point, "/home/", 6) == 0 && strlen(mount_point) > 6))
@@ -57,7 +75,7 @@ static int is_important_filesystem(const char *mount_point, const char *fstype)
         return 1;
     }
 
-    // Include other real filesystems that aren't system directories
+    /* Include recognised physical filesystem types outside system directories */
     if (mount_point[0] == '/' &&
         strncmp(mount_point, "/proc", 5) != 0 &&
         strncmp(mount_point, "/sys", 4) != 0 &&
@@ -80,6 +98,14 @@ static int is_important_filesystem(const char *mount_point, const char *fstype)
     return 0;
 }
 
+/**
+ * collect_storage_info - Gather filesystem statistics
+ *
+ * Parses /proc/mounts to enumerate mounted filesystems, filtering
+ * for relevant volumes via is_important_filesystem(). Retrieves
+ * capacity and usage statistics using statvfs() for each qualifying
+ * filesystem. Stores results in the static filesystems array.
+ */
 void collect_storage_info(void)
 {
     FILE *fp = fopen("/proc/mounts", "r");
@@ -103,7 +129,7 @@ void collect_storage_info(void)
             continue;
         }
 
-        // Skip if filesystem has no blocks (some virtual filesystems)
+        /* Skip filesystems with no blocks (virtual filesystems) */
         if (buf.f_blocks == 0)
             continue;
 
@@ -125,6 +151,13 @@ void collect_storage_info(void)
     fclose(fp);
 }
 
+/**
+ * storage_info - Display formatted storage information
+ *
+ * Prints capacity, usage, and percentage utilisation for each
+ * collected filesystem. Formats mount points in the display key
+ * for clarity. Outputs error message if no filesystems were found.
+ */
 void storage_info(void)
 {
     if (filesystem_count == 0)
@@ -142,7 +175,7 @@ void storage_info(void)
         char storage_info[512];
         char key[64];
 
-        // Format the key based on mount point
+        /* Format key based on mount point significance */
         if (strcmp(fs->mount_point, "/") == 0)
         {
             snprintf(key, sizeof(key), "Storage (/)");
