@@ -1,0 +1,72 @@
+name: Release Candidate
+
+on:
+    push:
+        tags:
+            - "v*-rc*"
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        name: Build for ${{ matrix.os }}
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                include:
+                    - os: debian-11
+                      container: debian:11
+                    - os: debian-12
+                      container: debian:12
+                    - os: debian-13
+                      container: debian:trixie
+                    - os: ubuntu-20.04
+                      container: ubuntu:20.04
+                    - os: ubuntu-22.04
+                      container: ubuntu:22.04
+                    - os: ubuntu-24.04
+                      container: ubuntu:24.04
+
+        container:
+            image: ${{ matrix.container }}
+
+        steps:
+            - name: Install dependencies
+              run: |
+                  apt-get update
+                  apt-get install -y gcc make git
+
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Build
+              run: make
+
+            - name: Create archive
+              run: |
+                  mkdir -p dist
+                  tar -czf dist/fetchit-${{ matrix.os }}-amd64.tar.gz fetchit
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: fetchit-${{ matrix.os }}-amd64
+                  path: dist/fetchit-${{ matrix.os }}-amd64.tar.gz
+
+    release:
+        name: Create Release
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Download artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: dist
+
+            - name: Create release
+              uses: softprops/action-gh-release@v1
+              with:
+                  prerelease: true
+                  files: dist/**/*.tar.gz
+                  generate_release_notes: true
