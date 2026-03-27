@@ -130,17 +130,17 @@ void collect_system_info(void)
     GetComputerNameExA(ComputerNameDnsHostname, g_system_info.system.hostname, &hostname_buffer_size);
 
     HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    RTL_OSVERSIONINFOW os_version_info;
+
+    memset(&os_version_info, 0, sizeof(RTL_OSVERSIONINFOW));
+    os_version_info.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
 
     if (ntdll != NULL && ntdll != INVALID_HANDLE_VALUE) {
         RTL_GET_VERSION rtl_get_version = (RTL_GET_VERSION)GetProcAddress(ntdll, "RtlGetVersion");
 
         if (rtl_get_version != NULL) {
-            RTL_OSVERSIONINFOW os_version_info;
-
-            os_version_info.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
-
             if (rtl_get_version(&os_version_info) == STATUS_SUCCESS) {
-                snprintf(g_system_info.system.kernel, ARRAYSIZE(g_system_info.system.kernel), "Windows %u.%u (Build %u)", os_version_info.dwMajorVersion, os_version_info.dwMinorVersion, os_version_info.dwBuildNumber);
+                snprintf(g_system_info.system.kernel, ARRAYSIZE(g_system_info.system.kernel), "Windows version %u.%u.%u", os_version_info.dwMajorVersion, os_version_info.dwMinorVersion, os_version_info.dwBuildNumber);
             }
         }
     }
@@ -161,6 +161,14 @@ void collect_system_info(void)
     DWORD os_name_buffer_size = ARRAYSIZE(g_system_info.system.os);
 
     RegGetValueA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductName", RRF_RT_REG_SZ, NULL, (PVOID)g_system_info.system.os, &os_name_buffer_size);
+
+    if (os_version_info.dwBuildNumber >= 22000) {
+        char* fake_windows_10 = strstr(g_system_info.system.os, "Windows 10");
+
+        if (fake_windows_10 != NULL) {
+            memcpy(fake_windows_10, "Windows 11", 10);
+        }
+    }
 #else
     struct utsname uts;
     if (uname(&uts) < 0)
