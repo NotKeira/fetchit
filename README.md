@@ -61,7 +61,7 @@ cd fetchit
 nmake /nologo /f Makefile.vc
 ```
 
-###F# Linux
+#### Linux
 
 ```bash
 # Clone the repository
