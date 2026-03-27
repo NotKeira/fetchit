@@ -1,23 +1,33 @@
 /**
  * gpu.c - GPU Information Collection
  *
- * Retrieves graphics card information from sysfs DRM subsystem.
- * Uses pattern matching for efficient device discovery and extracts
- * driver information from uevent files.
+ * Retrieves graphics card information.
  */
 
 #include "gpu.h"
 #include "types.h"
 #include "utils.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#include <dxgi.h>
+
+#pragma comment(lib, "DXGI.lib")
+#pragma comment(lib, "windowscodecs.lib")
+#else
 #include <stdio.h>
 #include <string.h>
 #include <glob.h>
 #include <unistd.h>
+#endif
 
 /**
  * collect_gpu_info - Gather GPU information
  *
- * Attempts to identify the GPU driver by reading DRM card device
+ * On Windows, it attempts to identify the GPU driver by creating a DXGI factory
+ * and retrieving its first adapter's description.
+ *
+ * On Linux, it attempts to identify the GPU driver by reading DRM card device
  * information from sysfs. Uses glob for efficient pattern-based
  * device discovery, falling back to direct path access if needed.
  * Only processes the first detected GPU card.
@@ -27,6 +37,25 @@
  */
 void collect_gpu_info(void)
 {
+#ifdef _WIN32
+    IDXGIFactory* factory = NULL;
+
+    if (SUCCEEDED(CreateDXGIFactory(&IID_IDXGIFactory, (void**)&factory))) {
+        IDXGIAdapter* adapter;
+
+        if (SUCCEEDED(factory->lpVtbl->EnumAdapters(factory, 0, &adapter))) {
+            DXGI_ADAPTER_DESC adapter_desc;
+
+            adapter->lpVtbl->GetDesc(adapter, &adapter_desc);
+
+            WideCharToMultiByte(CP_UTF8, 0, adapter_desc.Description, -1, g_system_info.gpu.model, ARRAYSIZE(g_system_info.gpu.model), NULL, NULL);
+
+            adapter->lpVtbl->Release(adapter);
+        }
+
+        factory->lpVtbl->Release(factory);
+    }
+#else
     glob_t glob_result;
 
     /* Primary method: use glob pattern matching for fast discovery */
@@ -99,6 +128,7 @@ void collect_gpu_info(void)
             }
         }
     }
+#endif
 }
 
 /**

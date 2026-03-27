@@ -1,7 +1,7 @@
 /**
  * memory.c - Memory Information Collection
  *
- * Retrieves system memory statistics from /proc/meminfo, including
+ * Retrieves system memory statistics, including
  * total, available, and used memory values. Calculates usage
  * percentages for display.
  */
@@ -9,14 +9,22 @@
 #include "memory.h"
 #include "types.h"
 #include "utils.h"
+
 #include <stdio.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <stdlib.h>
 #include <string.h>
+#endif
 
 /**
  * collect_memory_info - Gather memory statistics
  *
- * Parses /proc/meminfo to extract total and available memory values.
+ * On Windows, it calls the GlobalMemoryStatusEx() win32 function.
+ *
+ * On Linux, it parses /proc/meminfo to extract total and available memory values.
  * Uses single-pass reading for efficiency, stopping after both values
  * are found. Calculates used memory from the difference between total
  * and available.
@@ -26,6 +34,16 @@
  */
 void collect_memory_info(void)
 {
+#ifdef _WIN32
+    MEMORYSTATUSEX memory_status;
+
+    memory_status.dwLength = sizeof(MEMORYSTATUSEX);
+
+    if (GlobalMemoryStatusEx(&memory_status) == TRUE) {
+        g_system_info.memory.total_kb = memory_status.ullTotalPhys / 1024;
+        g_system_info.memory.free_kb = memory_status.ullAvailPhys / 1024;
+    }
+#else
     FILE *fp = fopen("/proc/meminfo", "r");
     if (!fp)
         return;
@@ -53,9 +71,11 @@ void collect_memory_info(void)
     if (total > 0)
     {
         g_system_info.memory.total_kb = total;
-        g_system_info.memory.used_kb = total - available;
         g_system_info.memory.free_kb = available;
     }
+#endif
+
+    g_system_info.memory.used_kb = g_system_info.memory.total_kb - g_system_info.memory.free_kb;
 }
 
 /**

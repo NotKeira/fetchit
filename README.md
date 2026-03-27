@@ -5,6 +5,7 @@ A command-line system information fetching tool.
 ## Supported Operating Systems
 Support for amd64 (x86_64), (untested for arm)
 
+- Windows
 - Debian 11 (Bullseye)
 - Debian 12 (Bookworm)
 - Debian 13 (Trixie)
@@ -32,25 +33,35 @@ apt install fetchit
 sudo apt install fetchit
 ```
 
+## Building from source
+
 ### Prerequisites
+
+#### Windows
+
+Microsoft Visual C/C++ (MSVC)
+
+#### Linux
 
 - GCC compiler
 - Make
 
-### Building from source
+### Build
 
-```bash
-# Clone the repository
+#### Windows
+
+```bat
+:: Clone the repository
 git clone https://github.com/NotKeira/fetchit.git
 
-# Navigate to the directory
+:: Navigate to the directory
 cd fetchit
 
-# Build the project
-make
+:: Build the project
+nmake /nologo /f Makefile.vc
 ```
 
-## Installation from source
+#### Linux
 
 ```bash
 # Clone the repository
@@ -59,7 +70,10 @@ git clone https://github.com/NotKeira/fetchit.git
 # Navigate to the directory
 cd fetchit
 
-# Install
+# You can build the project...
+make
+
+# ...or install it to your system
 sudo make install
 ```
 

@@ -6,34 +6,79 @@
  * optimised methods for efficient data collection.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/utsname.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include "system.h"
 #include "types.h"
 #include "utils.h"
 
+#include <stdio.h>
+#include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+
+#pragma warning(push)
+#pragma warning(disable: 4005)
+
+#include <ntstatus.h>
+
+#pragma warning(pop)
+
+#pragma comment(lib, "Advapi32.lib")
+
+typedef NTSTATUS (WINAPI* RTL_GET_VERSION)(PRTL_OSVERSIONINFOW);
+
+/**
+ * count_registry_subkeys - The total amount of registry subkeys under a base key and subkey
+ *
+ * It opens a key under the specified base key and subkey before querying the
+ * total amount of its subkeys with RegQueryInfoKeyA().
+ *
+ * Return: Number of registry subkeys, or 0 on error
+ */
+static DWORD count_registry_subkeys(HKEY base_key, LPCSTR subkey) {
+    HKEY registry_key;
+    DWORD count = 0;
+
+    if (RegOpenKeyExA(base_key, subkey, 0, KEY_READ, &registry_key) == ERROR_SUCCESS) {
+        RegQueryInfoKeyA(registry_key, NULL, NULL, NULL, &count, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+        RegCloseKey(registry_key);
+    }
+
+    return count;
+}
+#else
+#include <stdlib.h>
+#include <sys/utsname.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
+
 /**
  * count_packages_fast - Count installed Debian packages
  *
- * Parses /var/lib/dpkg/status to count installed packages. Uses
+ * On Windows, it retrieves the amount of subkeys stored in the
+ * SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall subkey within the
+ * HKEY_LOCAL_MACHINE and HKEY_CURRENT_USER base keys.
+ *
+ * On Linux, it parses /var/lib/dpkg/status to count installed packages. Uses
  * single-file parsing instead of directory scanning for improved
  * performance. Only counts packages with "install ok installed"
  * status.
  *
  * Return: Number of installed packages, or 0 on error
  */
-static int count_packages_fast(void)
-{
+static int count_packages_fast(void) {
+    int count = 0;
+
+#ifdef _WIN32
+    count += (int)count_registry_subkeys(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall");
+    count += (int)count_registry_subkeys(HKEY_CURRENT_USER, "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall");
+#else
     FILE *fp = fopen("/var/lib/dpkg/status", "r");
     if (!fp)
         return 0;
 
     char line[256];
-    int count = 0;
     int in_package = 0;
     int is_installed = 0;
 
@@ -61,19 +106,70 @@ static int count_packages_fast(void)
     }
 
     fclose(fp);
+#endif
+
     return count;
 }
 
 /**
  * collect_system_info - Gather basic system information
  *
- * Retrieves hostname, kernel version, and architecture via uname().
+ * On Windows, it retrieves hostname, kernel version, and architecture from the registry and other win32 APIs.
+ *
+ * On Linux, it retrieves hostname, kernel version, and architecture via uname().
  * Reads operating system name from /etc/os-release and counts
- * installed packages using count_packages_fast(). Populates the
- * global system_info structure with collected data.
+ * installed packages using count_packages_fast().
+ *
+ * And ultimately, the function populates the global system_info structure.
  */
 void collect_system_info(void)
 {
+#ifdef _WIN32
+    DWORD hostname_buffer_size = ARRAYSIZE(g_system_info.system.hostname);
+
+    GetComputerNameExA(ComputerNameDnsHostname, g_system_info.system.hostname, &hostname_buffer_size);
+
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    RTL_OSVERSIONINFOW os_version_info;
+
+    memset(&os_version_info, 0, sizeof(RTL_OSVERSIONINFOW));
+    os_version_info.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOW);
+
+    if (ntdll != NULL && ntdll != INVALID_HANDLE_VALUE) {
+        RTL_GET_VERSION rtl_get_version = (RTL_GET_VERSION)GetProcAddress(ntdll, "RtlGetVersion");
+
+        if (rtl_get_version != NULL) {
+            if (rtl_get_version(&os_version_info) == STATUS_SUCCESS) {
+                snprintf(g_system_info.system.kernel, ARRAYSIZE(g_system_info.system.kernel), "Windows version %u.%u.%u", os_version_info.dwMajorVersion, os_version_info.dwMinorVersion, os_version_info.dwBuildNumber);
+            }
+        }
+    }
+
+    SYSTEM_INFO system_info;
+
+    GetNativeSystemInfo(&system_info);
+
+    switch (system_info.wProcessorArchitecture) {
+        case PROCESSOR_ARCHITECTURE_AMD64: strcpy(g_system_info.system.arch, "x64"); break;
+        case PROCESSOR_ARCHITECTURE_ARM: strcpy(g_system_info.system.arch, "arm"); break;
+        case PROCESSOR_ARCHITECTURE_ARM64: strcpy(g_system_info.system.arch, "arm64"); break;
+        case PROCESSOR_ARCHITECTURE_IA64: strcpy(g_system_info.system.arch, "ia64"); break;
+        case PROCESSOR_ARCHITECTURE_INTEL: strcpy(g_system_info.system.arch, "x86"); break;
+        default: strcpy(g_system_info.system.arch, "Unknown");
+    }
+
+    DWORD os_name_buffer_size = ARRAYSIZE(g_system_info.system.os);
+
+    RegGetValueA(HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", "ProductName", RRF_RT_REG_SZ, NULL, (PVOID)g_system_info.system.os, &os_name_buffer_size);
+
+    if (os_version_info.dwBuildNumber >= 22000) {
+        char* fake_windows_10 = strstr(g_system_info.system.os, "Windows 10");
+
+        if (fake_windows_10 != NULL) {
+            memcpy(fake_windows_10, "Windows 11", 10);
+        }
+    }
+#else
     struct utsname uts;
     if (uname(&uts) < 0)
         return;
@@ -105,6 +201,7 @@ void collect_system_info(void)
         }
         fclose(fp);
     }
+#endif
 
     /* Count installed packages using optimised method */
     g_system_info.system.package_count = count_packages_fast();

@@ -7,7 +7,7 @@
  */
 
 #include <stdio.h>
-#include <unistd.h>
+#include <string.h>
 #include "utils.h"
 #include "types.h"
 #include "system.h"
@@ -17,7 +17,7 @@
 #include "storage.h"
 
 /* Global system information structure */
-system_info_t g_system_info = {0};
+system_info_t g_system_info;
 
 /**
  * collect_all_info - Gather all system information
@@ -28,6 +28,8 @@ system_info_t g_system_info = {0};
  */
 static inline void collect_all_info(void)
 {
+    memset(&g_system_info, 0, sizeof(system_info_t));
+
     collect_system_info();
     collect_cpu_info();
     collect_gpu_info();
@@ -69,6 +71,8 @@ static inline void print_all_info(void)
  */
 int main()
 {
+    prepare();
+
     print_title("==== FetchIt ====\n");
 
     collect_all_info();
