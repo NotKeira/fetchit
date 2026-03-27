@@ -50,18 +50,18 @@ Microsoft Visual C/C++ (MSVC)
 
 #### Windows
 
-```console
-# Clone the repository
+```bat
+:: Clone the repository
 git clone https://github.com/NotKeira/fetchit.git
 
-# Navigate to the directory
+:: Navigate to the directory
 cd fetchit
 
-# Build the project
+:: Build the project
 nmake /nologo /f Makefile.vc
 ```
 
-#### Linux
+###F# Linux
 
 ```bash
 # Clone the repository
