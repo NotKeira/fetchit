@@ -7,7 +7,6 @@ void prepare();
 #define prepare()
 #endif
 
-char *get_command_output(const char *command);
 void print_title(const char *title);
 void format_row(const char *key, const char *value);
 void format_string(const char *key, const char *value, const char *colour);

@@ -20,7 +20,6 @@ typedef struct
 typedef struct
 {
     char model[256];
-    unsigned long vram_mb;
 } gpu_data_t;
 
 typedef struct
