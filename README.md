@@ -33,22 +33,22 @@ apt install fetchit
 sudo apt install fetchit
 ```
 
-### Building from source
+## Building from source
 
-#### Prerequisites
+### Prerequisites
 
-##### Windows
+#### Windows
 
 Microsoft Visual C/C++ (MSVC)
 
-##### Linux
+#### Linux
 
 - GCC compiler
 - Make
 
-#### Build
+### Build
 
-##### Windows
+#### Windows
 
 ```console
 # Clone the repository
@@ -61,7 +61,7 @@ cd fetchit
 nmake /nologo /f Makefile.vc
 ```
 
-##### Linux
+#### Linux
 
 ```bash
 # Clone the repository
