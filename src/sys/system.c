@@ -136,8 +136,10 @@ void collect_system_info(void)
 
     switch (system_info.wProcessorArchitecture) {
         case PROCESSOR_ARCHITECTURE_AMD64: strcpy(g_system_info.system.arch, "x64"); break;
-        case PROCESSOR_ARCHITECTURE_INTEL: strcpy(g_system_info.system.arch, "x86"); break;
+        case PROCESSOR_ARCHITECTURE_ARM: strcpy(g_system_info.system.arch, "arm"); break;
         case PROCESSOR_ARCHITECTURE_ARM64: strcpy(g_system_info.system.arch, "arm64"); break;
+        case PROCESSOR_ARCHITECTURE_IA64: strcpy(g_system_info.system.arch, "ia64"); break;
+        case PROCESSOR_ARCHITECTURE_INTEL: strcpy(g_system_info.system.arch, "x86"); break;
         default: strcpy(g_system_info.system.arch, "Unknown");
     }
 
