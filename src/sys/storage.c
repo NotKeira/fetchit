@@ -108,10 +108,15 @@ static int is_important_filesystem(const char *mount_point, const char *fstype)
 /**
  * collect_storage_info - Gather filesystem statistics
  *
- * Parses /proc/mounts to enumerate mounted filesystems, filtering
+ * On Windows, it iterates through the system's volumes and retrieves
+ * their capacity and usage statistics using GetDiskFreeSpaceExA().
+ *
+ * On Linux, it parses /proc/mounts to enumerate mounted filesystems, filtering
  * for relevant volumes via is_important_filesystem(). Retrieves
  * capacity and usage statistics using statvfs() for each qualifying
- * filesystem. Stores results in the static filesystems array.
+ * filesystem.
+ *
+ * And ultimately, the function populates the static filesystems array.
  */
 void collect_storage_info(void)
 {

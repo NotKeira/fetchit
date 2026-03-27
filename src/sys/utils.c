@@ -19,6 +19,13 @@
 #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
 #endif
 
+/**
+ * prepare - Prepares fetchit
+ *
+ * On Windows, it configures stdout to support ANSI escape codes.
+ *
+ * On Linux, it is no-op.
+ */
 void prepare() {
     HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
 

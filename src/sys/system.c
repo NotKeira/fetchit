@@ -27,6 +27,14 @@
 
 typedef NTSTATUS (WINAPI* RTL_GET_VERSION)(PRTL_OSVERSIONINFOW);
 
+/**
+ * count_registry_subkeys - The total amount of registry subkeys under a base key and subkey
+ *
+ * It opens a key under the specified base key and subkey before querying the
+ * total amount of its subkeys with RegQueryInfoKeyA().
+ *
+ * Return: Number of registry subkeys, or 0 on error
+ */
 static DWORD count_registry_subkeys(HKEY base_key, LPCSTR subkey) {
     HKEY registry_key;
     DWORD count = 0;
@@ -48,7 +56,11 @@ static DWORD count_registry_subkeys(HKEY base_key, LPCSTR subkey) {
 /**
  * count_packages_fast - Count installed Debian packages
  *
- * Parses /var/lib/dpkg/status to count installed packages. Uses
+ * On Windows, it retrieves the amount of subkeys stored in the
+ * SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall subkey within the
+ * HKEY_LOCAL_MACHINE and HKEY_CURRENT_USER base keys.
+ *
+ * On Linux, it parses /var/lib/dpkg/status to count installed packages. Uses
  * single-file parsing instead of directory scanning for improved
  * performance. Only counts packages with "install ok installed"
  * status.
@@ -102,10 +114,13 @@ static int count_packages_fast(void) {
 /**
  * collect_system_info - Gather basic system information
  *
- * Retrieves hostname, kernel version, and architecture via uname().
+ * On Windows, it retrieves hostname, kernel version, and architecture from the registry and other win32 APIs.
+ *
+ * On Linux, it retrieves hostname, kernel version, and architecture via uname().
  * Reads operating system name from /etc/os-release and counts
- * installed packages using count_packages_fast(). Populates the
- * global system_info structure with collected data.
+ * installed packages using count_packages_fast().
+ *
+ * And ultimately, the function populates the global system_info structure.
  */
 void collect_system_info(void)
 {

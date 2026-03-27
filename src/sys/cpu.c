@@ -1,8 +1,7 @@
 /**
  * cpu.c - CPU Information Collection
  *
- * Retrieves processor information from /proc/cpuinfo and sysfs,
- * including model name, core count, and operating frequency.
+ * Retrieves processor information including model name, core count, and operating frequency.
  */
 
 #include "cpu.h"
@@ -42,7 +41,10 @@ typedef struct _PROCESSOR_POWER_INFORMATION {
 /**
  * get_cpu_frequency - Determine CPU operating frequency
  *
- * Attempts to read the CPU frequency from sysfs (most reliable method),
+ * On Windows, it attempts to read the CPU frequency by calling NT power processor information
+ * falling back to the registry if unable to.
+ *
+ * On Linux, it attempts to read the CPU frequency from sysfs (most reliable method),
  * falling back to /proc/cpuinfo if sysfs data is unavailable.
  *
  * Return: CPU frequency in MHz, or 0.0 if unable to determine
@@ -103,9 +105,15 @@ static double get_cpu_frequency(void)
 /**
  * collect_cpu_info - Gather CPU information
  *
- * Parses /proc/cpuinfo to extract the processor model name and
- * count logical cores. Retrieves frequency separately via
- * get_cpu_frequency(). Populates the global system_info structure.
+ * On Windows, it retrieves relevant CPU information from the registry and other win32 APIs.
+ *
+ * On Linux, it parses /proc/cpuinfo to extract the processor model name and
+ * count logical cores.
+ *
+ * CPU frequency is retrieved separately via
+ * get_cpu_frequency().
+ *
+ * And ultimately, the function populates the global system_info structure.
  */
 void collect_cpu_info(void)
 {

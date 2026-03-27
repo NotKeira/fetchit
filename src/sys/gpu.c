@@ -1,9 +1,7 @@
 /**
  * gpu.c - GPU Information Collection
  *
- * Retrieves graphics card information from sysfs DRM subsystem.
- * Uses pattern matching for efficient device discovery and extracts
- * driver information from uevent files.
+ * Retrieves graphics card information.
  */
 
 #include "gpu.h"
@@ -26,7 +24,10 @@
 /**
  * collect_gpu_info - Gather GPU information
  *
- * Attempts to identify the GPU driver by reading DRM card device
+ * On Windows, it attempts to identify the GPU driver by creating a DXGI factory
+ * and retrieving its first adapter's description.
+ *
+ * On Linux, it attempts to identify the GPU driver by reading DRM card device
  * information from sysfs. Uses glob for efficient pattern-based
  * device discovery, falling back to direct path access if needed.
  * Only processes the first detected GPU card.

@@ -1,7 +1,7 @@
 /**
  * memory.c - Memory Information Collection
  *
- * Retrieves system memory statistics from /proc/meminfo, including
+ * Retrieves system memory statistics, including
  * total, available, and used memory values. Calculates usage
  * percentages for display.
  */
@@ -22,7 +22,9 @@
 /**
  * collect_memory_info - Gather memory statistics
  *
- * Parses /proc/meminfo to extract total and available memory values.
+ * On Windows, it calls the GlobalMemoryStatusEx() win32 function.
+ *
+ * On Linux, it parses /proc/meminfo to extract total and available memory values.
  * Uses single-pass reading for efficiency, stopping after both values
  * are found. Calculates used memory from the difference between total
  * and available.
