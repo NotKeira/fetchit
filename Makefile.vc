@@ -1,0 +1,12 @@
+CC = cl
+CFLAGS = /nologo /O2 /I include /DNDEBUG /diagnostics:caret
+SRC = src\sys\cpu.c src\sys\gpu.c src\sys\memory.c src\sys\storage.c src\sys\system.c src\sys\utils.c src\main.c
+OUT = fetchit.exe
+
+all: $(OUT) *.obj
+
+$(OUT) *.obj: $(SRC)
+	$(CC) $(CFLAGS) /Fe$(OUT) $**
+
+clean:
+	del /q $(OUT) *.obj

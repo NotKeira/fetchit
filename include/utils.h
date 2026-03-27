@@ -1,6 +1,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#ifdef _WIN32
+void prepare();
+#else
+#define prepare()
+#endif
+
 char *get_command_output(const char *command);
 void print_title(const char *title);
 void format_row(const char *key, const char *value);

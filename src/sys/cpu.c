@@ -8,10 +8,36 @@
 #include "cpu.h"
 #include "types.h"
 #include "utils.h"
-#include <stdio.h>
+
 #include <stdlib.h>
+#include <stdio.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <powerbase.h>
+
+#pragma warning(push)
+#pragma warning(disable: 4005)
+
+#include <ntstatus.h>
+
+#pragma warning(pop)
+
+#pragma comment(lib, "PowrProf.lib")
+#pragma comment(lib, "Advapi32.lib")
+
+typedef struct _PROCESSOR_POWER_INFORMATION {
+    ULONG Number;
+    ULONG MaxMhz;
+    ULONG CurrentMhz;
+    ULONG MhzLimit;
+    ULONG MaxIdleState;
+    ULONG CurrentIdleState;
+} PROCESSOR_POWER_INFORMATION, *PPROCESSOR_POWER_INFORMATION;
+#else
 #include <string.h>
 #include <unistd.h>
+#endif
 
 /**
  * get_cpu_frequency - Determine CPU operating frequency
@@ -25,6 +51,20 @@ static double get_cpu_frequency(void)
 {
     double freq = 0.0;
 
+#ifdef _WIN32
+    PROCESSOR_POWER_INFORMATION processor_power_info;
+
+    if (CallNtPowerInformation(ProcessorInformation, NULL, 0, &processor_power_info, sizeof(PROCESSOR_POWER_INFORMATION)) == STATUS_SUCCESS) {
+        freq = (double)processor_power_info.CurrentMhz;
+    } else {
+        DWORD approximate_cpu_mhz;
+        DWORD approximate_cpu_mhz_size = sizeof(DWORD);
+
+        if (RegGetValueA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "~MHz", RRF_RT_DWORD, NULL, (LPDWORD)&approximate_cpu_mhz, &approximate_cpu_mhz_size) == ERROR_SUCCESS) {
+            freq = (double)approximate_cpu_mhz;
+        }
+    }
+#else
     /* Primary method: read max frequency from sysfs */
     FILE *fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", "r");
     if (fp)
@@ -55,6 +95,7 @@ static double get_cpu_frequency(void)
         }
         fclose(fp);
     }
+#endif
 
     return freq;
 }
@@ -68,12 +109,45 @@ static double get_cpu_frequency(void)
  */
 void collect_cpu_info(void)
 {
+    int cores = 0;
+
+#ifdef _WIN32
+    DWORD cpu_model_buffer_size = 256;
+
+    RegGetValueA(HKEY_LOCAL_MACHINE, "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0", "ProcessorNameString", RRF_RT_REG_SZ, NULL, (PVOID)g_system_info.cpu.model, &cpu_model_buffer_size);
+
+    DWORD processor_info_buffer_size = 0;
+
+    if (GetLogicalProcessorInformationEx(RelationProcessorCore, NULL, &processor_info_buffer_size) == FALSE && GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+        return;
+    }
+
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processor_info = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)malloc(processor_info_buffer_size);
+
+    if (processor_info != NULL) {
+        if (GetLogicalProcessorInformationEx(RelationProcessorCore, processor_info, &processor_info_buffer_size) == TRUE) {
+            char* ptr = (char*)processor_info;
+            char* end = ptr + processor_info_buffer_size;
+
+            while (ptr < end) {
+                PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX current_processor_info = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)ptr;
+
+                if (current_processor_info->Relationship == RelationProcessorCore) {
+                    cores++;
+                }
+
+                ptr += current_processor_info->Size;
+            }
+        }
+
+        free(processor_info);
+    }
+#else
     FILE *fp = fopen("/proc/cpuinfo", "r");
     if (!fp)
         return;
 
     char line[256];
-    int cores = 0;
     int model_found = 0;
 
     while (fgets(line, sizeof(line), fp))
@@ -103,6 +177,7 @@ void collect_cpu_info(void)
     }
 
     fclose(fp);
+#endif
 
     g_system_info.cpu.cores = cores;
     g_system_info.cpu.freq_mhz = get_cpu_frequency();

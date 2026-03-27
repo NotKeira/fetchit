@@ -69,6 +69,8 @@ static inline void print_all_info(void)
  */
 int main()
 {
+    prepare();
+
     print_title("==== FetchIt ====\n");
 
     collect_all_info();

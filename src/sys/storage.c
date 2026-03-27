@@ -9,17 +9,22 @@
 #include "storage.h"
 #include "types.h"
 #include "utils.h"
-#include <stdio.h>
+
 #include <string.h>
+#include <stdio.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/statvfs.h>
 #include <mntent.h>
+#endif
 
 #define MAX_FILESYSTEMS 16
 
 typedef struct
 {
     char mount_point[256];
-    char device[256];
     double total_gb;
     double used_gb;
     double free_gb;
@@ -28,6 +33,7 @@ typedef struct
 static filesystem_info_t filesystems[MAX_FILESYSTEMS];
 static int filesystem_count = 0;
 
+#ifndef _WIN32
 /**
  * is_important_filesystem - Determine if filesystem should be displayed
  * @mount_point: Mount path of the filesystem
@@ -97,6 +103,7 @@ static int is_important_filesystem(const char *mount_point, const char *fstype)
 
     return 0;
 }
+#endif
 
 /**
  * collect_storage_info - Gather filesystem statistics
@@ -108,12 +115,42 @@ static int is_important_filesystem(const char *mount_point, const char *fstype)
  */
 void collect_storage_info(void)
 {
+    static const double bytes_to_gb = 1.0 / (1024.0 * 1024.0 * 1024.0);
+
+    memset(&filesystems, 0, sizeof(filesystem_info_t) * MAX_FILESYSTEMS);
+
+#ifdef _WIN32
+    char raw_volume_name[256];
+    char volume_name[256];
+    DWORD volume_name_buffer_size = ARRAYSIZE(volume_name);
+
+    HANDLE volume = FindFirstVolumeA(raw_volume_name, ARRAYSIZE(raw_volume_name));
+
+    if (volume == NULL || volume == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
+    filesystem_count = 0;
+
+    do {
+        filesystem_info_t* fs = &filesystems[filesystem_count];
+
+        volume_name[0] = '\0';
+
+        strcpy(fs->mount_point, GetVolumePathNamesForVolumeNameA(raw_volume_name, volume_name, volume_name_buffer_size, &volume_name_buffer_size) == TRUE && volume_name[0] != '\0' ? volume_name : raw_volume_name);
+
+        ULARGE_INTEGER free_to_caller, total, free;
+
+        if (GetDiskFreeSpaceExA(raw_volume_name, &free_to_caller, &total, &free) == TRUE) {
+            fs->used_gb = (fs->total_gb = (double)total.QuadPart * bytes_to_gb) - (fs->free_gb = (double)free.QuadPart * bytes_to_gb);
+        }
+    } while (++filesystem_count < MAX_FILESYSTEMS && FindNextVolumeA(volume, raw_volume_name, MAX_PATH) == TRUE);
+#else
     FILE *fp = fopen("/proc/mounts", "r");
     if (!fp)
         return;
 
     filesystem_count = 0;
-    static const double bytes_to_gb = 1.0 / (1024.0 * 1024.0 * 1024.0);
 
     struct mntent *entry;
     while ((entry = getmntent(fp)) && filesystem_count < MAX_FILESYSTEMS)
@@ -136,19 +173,17 @@ void collect_storage_info(void)
         filesystem_info_t *fs = &filesystems[filesystem_count];
 
         strncpy(fs->mount_point, entry->mnt_dir, sizeof(fs->mount_point) - 1);
-        strncpy(fs->device, entry->mnt_fsname, sizeof(fs->device) - 1);
 
         double total_bytes = (double)(buf.f_blocks * buf.f_frsize);
         double used_bytes = (double)((buf.f_blocks - buf.f_bfree) * buf.f_frsize);
 
-        fs->total_gb = total_bytes * bytes_to_gb;
-        fs->used_gb = used_bytes * bytes_to_gb;
-        fs->free_gb = fs->total_gb - fs->used_gb;
+        fs->free_gb = (fs->total_gb = total_bytes * bytes_to_gb) - (fs->used_gb = used_bytes * bytes_to_gb);
 
         filesystem_count++;
     }
 
     fclose(fp);
+#endif
 }
 
 /**
@@ -175,6 +210,7 @@ void storage_info(void)
         char storage_info[512];
         char key[64];
 
+#ifndef _WIN32
         /* Format key based on mount point significance */
         if (strcmp(fs->mount_point, "/") == 0)
         {
@@ -186,8 +222,11 @@ void storage_info(void)
         }
         else
         {
+#endif
             snprintf(key, sizeof(key), "Storage (%s)", fs->mount_point);
+#ifndef _WIN32
         }
+#endif
 
         snprintf(storage_info, sizeof(storage_info),
                  "%.1f GiB / %.1f GiB (%.1f%% used)",

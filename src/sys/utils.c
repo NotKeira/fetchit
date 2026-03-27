@@ -12,6 +12,30 @@
 #include "utils.h"
 #include "colour.h"
 
+#ifdef _WIN32
+#include <windows.h>
+
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+
+void prepare() {
+    HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    if (stdout_handle == NULL || stdout_handle == INVALID_HANDLE_VALUE) {
+        return;
+    }
+
+    DWORD current_stdout_mode = 0;
+
+    if (GetConsoleMode(stdout_handle, &current_stdout_mode) == TRUE) {
+        current_stdout_mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+
+        SetConsoleMode(stdout_handle, current_stdout_mode);
+    }
+}
+#endif
+
 /**
  * print_title - Display application title
  * @title: Title text to display
@@ -22,7 +46,7 @@
 void print_title(const char *title)
 {
     char *coloured_title = colour_string(CYAN, title);
-    if (coloured_title)
+    if (coloured_title != NULL)
     {
         printf("\n%s\n", coloured_title);
         free(coloured_title);
@@ -44,12 +68,11 @@ char *colour_string(const char *colour, const char *text)
 {
     size_t length = strlen(colour) + strlen(text) + strlen(RESET) + 1;
     char *output = (char *)malloc(length);
-    if (output == NULL)
+    if (output != NULL)
     {
-        return NULL;
+        snprintf(output, length, "%s%s%s", colour, text, RESET);
     }
 
-    snprintf(output, length, "%s%s%s", colour, text, RESET);
     return output;
 }
 
@@ -68,7 +91,7 @@ void format_string(const char *key, const char *value, const char *colour)
     char *bold_key = colour_string(BOLD, coloured_key);
     free(coloured_key);
 
-    if (bold_key)
+    if (bold_key != NULL)
     {
         printf("%-35s %s\n", bold_key, value);
         free(bold_key);
