@@ -36,7 +36,7 @@ jobs:
       - name: Build
         run: make
       - name: Run
-        run: fetchit
+        run: ./fetchit
   test-windows:
     name: Test on Windows
     runs-on: windows-latest
@@ -51,4 +51,4 @@ jobs:
       - name: Build
         run: nmake /nologo /f Makefile.vc
       - name: Run
-        run: fetchit
+        run: .\fetchit.exe
