@@ -3,6 +3,7 @@ on:
   push:
     tags:
       - "v*-rc*"
+  workflow_dispatch: null
 permissions:
   contents: write
 jobs:
@@ -42,10 +43,33 @@ jobs:
         with:
           name: fetchit-${{ matrix.os }}-amd64
           path: dist/fetchit-${{ matrix.os }}-amd64.tar.gz
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch:
+          - x64
+          - x86
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Build
+        run: |
+          nmake /nologo /f Makefile.vc
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Move-Item -Path fetchit.exe -Destination dist/fetchit-windows-${{ matrix.arch }}.exe
+      - uses: actions/upload-artifact@v7
+        with:
+          name: fetchit-windows-${{ matrix.arch }}
+          path: dist/fetchit-windows-${{ matrix.arch }}.exe
   release:
     name: Create release
     needs:
       - build-linux
+      - build-windows
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
@@ -55,5 +79,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          files: dist/**/*.tar.gz
+          files: |
+            dist/**/*.tar.gz
+            dist/**/*.exe
           generate_release_notes: true
