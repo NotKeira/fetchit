@@ -39,7 +39,7 @@ sudo apt install fetchit
 
 #### Windows
 
-Microsoft Visual C/C++ (MSVC)
+Microsoft Visual C++ (MSVC)
 
 #### Linux
 
