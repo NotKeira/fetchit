@@ -1,8 +1,7 @@
 name: Release
 on:
   push:
-    tags:
-      - "v*-rc*"
+    tags: ['v*-rc*']
   workflow_dispatch: null
 permissions:
   contents: write
