@@ -103,6 +103,10 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - name: Install git (if needed)
+        run: |
+          apt-get update 2>/dev/null || true
+          apt-get install -y git 2>/dev/null || true
       - name: Get version from tag
         id: get_version
         run: |

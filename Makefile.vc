@@ -4,9 +4,6 @@ SRC = src\sys\cpu.c src\sys\gpu.c src\sys\memory.c src\sys\storage.c src\sys\sys
 OUT = fetchit.exe
 VERSION = 1.3.1
 
-# Platform detection (x86 or x64)
-PLATFORM ?= $(PROCESSOR_ARCHITECTURE)
-
 all: $(OUT) clean-obj
 
 $(OUT): $(SRC)
