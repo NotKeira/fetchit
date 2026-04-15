@@ -1,0 +1,54 @@
+name: Test
+on:
+  push:
+    tags-ignore: ['**']
+    paths:
+      - 'src/**/*.c'
+      - 'include/*.h'
+  workflow_dispatch: null
+jobs:
+  test-linux:
+    name: Test on Linux (${{ matrix.os }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: debian-11
+            container: debian:11
+          - os: debian-12
+            container: debian:12
+          - os: debian-13
+            container: debian:trixie
+          - os: ubuntu-20.04
+            container: ubuntu:20.04
+          - os: ubuntu-22.04
+            container: ubuntu:22.04
+          - os: ubuntu-24.04
+            container: ubuntu:24.04
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y gcc make git
+      - name: Build
+        run: make
+      - name: Run
+        run: ./fetchit
+  test-windows:
+    name: Test on Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, x86]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Build
+        run: nmake /nologo /f Makefile.vc
+      - name: Run
+        run: .\fetchit.exe

@@ -1,72 +1,81 @@
-name: Release Candidate
-
+name: Release
 on:
-    push:
-        tags:
-            - "v*-rc*"
-
+  push:
+    tags: ['v*-rc*']
+  workflow_dispatch: null
 permissions:
-    contents: write
-
+  contents: write
 jobs:
-    build:
-        name: Build for ${{ matrix.os }}
-        runs-on: ubuntu-latest
-        strategy:
-            matrix:
-                include:
-                    - os: debian-11
-                      container: debian:11
-                    - os: debian-12
-                      container: debian:12
-                    - os: debian-13
-                      container: debian:trixie
-                    - os: ubuntu-20.04
-                      container: ubuntu:20.04
-                    - os: ubuntu-22.04
-                      container: ubuntu:22.04
-                    - os: ubuntu-24.04
-                      container: ubuntu:24.04
-
-        container:
-            image: ${{ matrix.container }}
-
-        steps:
-            - name: Install dependencies
-              run: |
-                  apt-get update
-                  apt-get install -y gcc make git
-
-            - name: Checkout
-              uses: actions/checkout@v4
-
-            - name: Build
-              run: make
-
-            - name: Create archive
-              run: |
-                  mkdir -p dist
-                  tar -czf dist/fetchit-${{ matrix.os }}-amd64.tar.gz fetchit
-
-            - name: Upload artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: fetchit-${{ matrix.os }}-amd64
-                  path: dist/fetchit-${{ matrix.os }}-amd64.tar.gz
-
-    release:
-        name: Create Release
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
-            - name: Download artifacts
-              uses: actions/download-artifact@v4
-              with:
-                  path: dist
-
-            - name: Create release
-              uses: softprops/action-gh-release@v1
-              with:
-                  prerelease: true
-                  files: dist/**/*.tar.gz
-                  generate_release_notes: true
+  build-linux:
+    name: Build for Linux (${{ matrix.os }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: debian-11
+            container: debian:11
+          - os: debian-12
+            container: debian:12
+          - os: debian-13
+            container: debian:trixie
+          - os: ubuntu-20.04
+            container: ubuntu:20.04
+          - os: ubuntu-22.04
+            container: ubuntu:22.04
+          - os: ubuntu-24.04
+            container: ubuntu:24.04
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y gcc make git
+      - name: Build
+        run: make
+      - name: Create archive
+        run: |
+          mkdir -p dist
+          tar -czf dist/fetchit-${{ matrix.os }}-amd64.tar.gz fetchit
+      - uses: actions/upload-artifact@v7
+        with:
+          name: fetchit-${{ matrix.os }}-amd64
+          path: dist/fetchit-${{ matrix.os }}-amd64.tar.gz
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, x86]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Build
+        run: |
+          nmake /nologo /f Makefile.vc
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Move-Item -Path fetchit.exe -Destination dist/fetchit-windows-${{ matrix.arch }}.exe
+      - uses: actions/upload-artifact@v7
+        with:
+          name: fetchit-windows-${{ matrix.arch }}
+          path: dist/fetchit-windows-${{ matrix.arch }}.exe
+  release:
+    name: Create release
+    needs:
+      - build-linux
+      - build-windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/**/*.tar.gz
+            dist/**/*.exe
+          generate_release_notes: true
