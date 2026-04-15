@@ -1,3 +1,16 @@
+fetchit (1.3.1) unstable; urgency=medium
+
+  * Add comprehensive GitHub Actions CI/CD workflow for automated releases
+  * Implement multi-platform release bundling (Linux amd64/arm64, Windows x64/x86)
+  * Generate Debian packages for Ubuntu and Debian distributions
+  * Cross-architecture build support with proper binary naming
+  * Add Windows MSVC build support (Makefile.vc enhancements)
+  * Improve .gitignore to exclude build artifacts and dist files
+  * Update copyright year to 2024-2026
+  * Streamline build system for cleaner release process
+
+ -- Keira Hopkins <open-source@keirahopkins.co.uk>  Tue, 15 Apr 2026 18:08:00 +0100
+
 fetchit (1.3.0) unstable; urgency=medium
 
   * Major performance improvements reducing execution time by ~90%
