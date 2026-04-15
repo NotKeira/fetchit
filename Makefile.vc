@@ -2,11 +2,24 @@ CC = cl
 CFLAGS = /nologo /O2 /I include /DNDEBUG /diagnostics:caret
 SRC = src\sys\cpu.c src\sys\gpu.c src\sys\memory.c src\sys\storage.c src\sys\system.c src\sys\utils.c src\main.c
 OUT = fetchit.exe
+VERSION = 1.3.0
 
-all: $(OUT) *.obj
+# Platform detection (x86 or x64)
+PLATFORM ?= $(PROCESSOR_ARCHITECTURE)
+
+all: $(OUT) clean-obj
 
 $(OUT) *.obj: $(SRC)
 	$(CC) $(CFLAGS) /Fe$(OUT) $**
 
 clean:
-	del /q $(OUT) *.obj
+	del /q $(OUT) *.obj 2>nul || exit /b 0
+
+clean-obj:
+	del /q *.obj 2>nul || exit /b 0
+
+release: $(OUT)
+	@if not exist dist mkdir dist
+	@echo Creating Windows $(PLATFORM) release archive...
+	@move $(OUT) dist\fetchit-windows-$(PLATFORM).exe
+	@echo Windows release: dist\fetchit-windows-$(PLATFORM).exe

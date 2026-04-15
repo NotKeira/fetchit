@@ -1,29 +1,40 @@
 name: Release
 on:
   push:
-    tags: ['v*-rc*']
+    tags: ["v*"]
   workflow_dispatch: null
 permissions:
   contents: write
 jobs:
-  build-linux:
-    name: Build for Linux (${{ matrix.os }})
+  build-linux-artifacts:
+    name: Build for Linux (${{ matrix.os }}) - ${{ matrix.arch }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
+          # amd64 builds
           - os: debian-11
             container: debian:11
+            arch: amd64
           - os: debian-12
             container: debian:12
+            arch: amd64
           - os: debian-13
             container: debian:trixie
+            arch: amd64
           - os: ubuntu-20.04
             container: ubuntu:20.04
+            arch: amd64
           - os: ubuntu-22.04
             container: ubuntu:22.04
+            arch: amd64
           - os: ubuntu-24.04
             container: ubuntu:24.04
+            arch: amd64
+          # arm64 builds (single representative)
+          - os: ubuntu-24.04
+            container: ubuntu:24.04
+            arch: arm64
     container:
       image: ${{ matrix.container }}
     steps:
@@ -31,19 +42,79 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y gcc make git
-      - name: Build
+          apt-get install -y gcc make git dpkg-dev
+      - name: Install cross-compiler (arm64 only)
+        if: matrix.arch == 'arm64'
+        run: |
+          apt-get install -y gcc-aarch64-linux-gnu
+      - name: Set cross-compiler (arm64 only)
+        if: matrix.arch == 'arm64'
+        run: echo "CC=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+      - name: Build binary
         run: make
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=$(git describe --tags --always | sed 's/^v//')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
       - name: Create archive
         run: |
           mkdir -p dist
-          tar -czf dist/fetchit-${{ matrix.os }}-amd64.tar.gz fetchit
-      - uses: actions/upload-artifact@v7
+          tar -czf dist/fetchit-${{ steps.get_version.outputs.VERSION }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz fetchit
+      - name: Create Debian package
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          ARCH_DEB=${{ matrix.arch }}
+          mkdir -p dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/usr/bin
+          mkdir -p dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/usr/share/doc/fetchit
+          mkdir -p dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/usr/share/man/man1
+          mkdir -p dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/DEBIAN
+
+          cp fetchit dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/usr/bin/
+          cp LICENSE dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/usr/share/doc/fetchit/copyright
+          cp README.md dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/usr/share/doc/fetchit/
+          cp fetchit.1 dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/usr/share/man/man1/ 2>/dev/null || true
+
+          cat > dist/staging/fetchit-${VERSION}-1_${ARCH_DEB}/DEBIAN/control << EOF
+          Package: fetchit
+          Version: ${VERSION}
+          Architecture: ${ARCH_DEB}
+          Maintainer: Keira Hopkins <open-source@keirahopkins.co.uk>
+          Description: Lightweight system information fetching tool
+          EOF
+
+          dpkg-deb --build dist/staging/fetchit-${VERSION}-1_${ARCH_DEB} dist/fetchit_${VERSION}-1_${ARCH_DEB}.deb
+          rm -rf dist/staging
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: fetchit-${{ matrix.os }}-amd64
-          path: dist/fetchit-${{ matrix.os }}-amd64.tar.gz
+          name: linux-${{ matrix.os }}-${{ matrix.arch }}
+          path: dist/
+
+  build-source:
+    name: Build source archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Get version from tag
+        id: get_version
+        run: |
+          VERSION=$(git describe --tags --always | sed 's/^v//')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+      - name: Create source archive
+        run: |
+          mkdir -p dist/fetchit-${{ steps.get_version.outputs.VERSION }}-src
+          cp -r src/ include/ Makefile Makefile.vc README.md LICENSE fetchit.1 debian/ dist/fetchit-${{ steps.get_version.outputs.VERSION }}-src/
+          cd dist && tar -czf fetchit-${{ steps.get_version.outputs.VERSION }}-src.tar.gz fetchit-${{ steps.get_version.outputs.VERSION }}-src
+          rm -rf fetchit-${{ steps.get_version.outputs.VERSION }}-src
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: source
+          path: dist/
+
   build-windows:
-    name: Build for Windows
+    name: Build for Windows (${{ matrix.arch }})
     runs-on: windows-latest
     strategy:
       matrix:
@@ -53,29 +124,42 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.arch }}
-      - name: Build
+      - name: Get version from tag
+        id: get_version
         run: |
-          nmake /nologo /f Makefile.vc
+          $VERSION = git describe --tags --always | % {$_ -replace '^v',''}
+          echo "VERSION=$VERSION" | Out-File -Append $env:GITHUB_OUTPUT
+      - name: Build
+        run: nmake /nologo /f Makefile.vc
+      - name: Create directory
+        run: mkdir -p dist
+      - name: Move binary
+        run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          Move-Item -Path fetchit.exe -Destination dist/fetchit-windows-${{ matrix.arch }}.exe
-      - uses: actions/upload-artifact@v7
+          Move-Item -Path fetchit.exe -Destination dist/fetchit-${{ steps.get_version.outputs.VERSION }}-windows-${{ matrix.arch }}.exe
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: fetchit-windows-${{ matrix.arch }}
-          path: dist/fetchit-windows-${{ matrix.arch }}.exe
-  release:
-    name: Create release
-    needs:
-      - build-linux
-      - build-windows
+          name: windows-${{ matrix.arch }}
+          path: dist/
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-linux-artifacts, build-source, build-windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v8
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
         with:
-          path: dist
+          path: release-files
+      - name: Organize and list files
+        run: |
+          mkdir -p final-release
+          find release-files -type f \( -name "*.tar.gz" -o -name "*.deb" -o -name "*.exe" \) -exec cp {} final-release/ \;
+          echo "Release artifacts:"
+          ls -lh final-release/
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/**/*.tar.gz
-            dist/**/*.exe
+          files: final-release/*
           generate_release_notes: true

@@ -2,6 +2,7 @@ CC = gcc
 CFLAGS = -Iinclude -Wall -Wextra -O3 -march=native -flto -DNDEBUG
 SRC = $(wildcard src/sys/*.c) src/main.c
 OUT = fetchit
+VERSION = 1.3.0
 
 # Auto-detect install location based on permissions
 ifeq ($(shell id -u), 0)

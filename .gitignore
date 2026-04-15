@@ -2,5 +2,7 @@
 .vscode
 .git
 fetchit
-*.exe
+fetchit-*
 *.obj
+dist/
+build/
