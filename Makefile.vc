@@ -9,7 +9,7 @@ PLATFORM ?= $(PROCESSOR_ARCHITECTURE)
 
 all: $(OUT) clean-obj
 
-$(OUT) *.obj: $(SRC)
+$(OUT): $(SRC)
 	$(CC) $(CFLAGS) /Fe$(OUT) $**
 
 clean:
